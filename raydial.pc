@@ -1,0 +1,11 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: raydial
+Description: Simple dialogue box library for raylib
+Version: 0.1.0
+Requires: raylib
+Libs: -L${libdir} -lraydial
+Cflags: -I${includedir}

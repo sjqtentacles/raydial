@@ -1,0 +1,77 @@
+# Build directories
+build/
+out/
+bin/
+lib/
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.cmake
+*.ninja
+.ninja_deps
+.ninja_log
+
+# Compiler generated files
+*.o
+*.obj
+*.lo
+*.la
+*.class
+*.gcno
+*.gcda
+*.gcov
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test coverage
+coverage/
+*.gcov
+*.gcda
+*.gcno
+
+# Dependencies
+deps/
+third_party/
+external/
+
+# Logs and databases
+*.log
+*.sqlite
+*.sqlite3
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*.rej
+
+# Documentation
+docs/_build/
+docs/_static/
+docs/_templates/
+
+# Package files
+*.tar.gz
+*.zip
+*.7z
+*.rar
