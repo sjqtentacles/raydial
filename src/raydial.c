@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <ctype.h>
+#include "raydial_i18n.h"
 
 // Component creation functions
 RayDialComponent* CreateButton(Rectangle bounds, const char* text, RayDialCallback onClick, void* userData) {
@@ -1322,4 +1323,137 @@ void SetPortraitDialogueStyledText(RayDialComponent* component, const char* form
     
     // Enable styled text rendering
     data->useStyledText = true;
+}
+
+// Localized component creation and text setting functions
+
+// Create a button with localized text
+RayDialComponent* CreateLocalizedButton(Rectangle bounds, const char* textKey, RayDialCallback onClick, void* userData, RayDialI18N* i18n) {
+    const char* localizedText = GetLocalizedText(i18n, textKey);
+    return CreateButton(bounds, localizedText, onClick, userData);
+}
+
+// Create a label with localized text
+RayDialComponent* CreateLocalizedLabel(Rectangle bounds, const char* textKey, bool wrapText, RayDialI18N* i18n) {
+    const char* localizedText = GetLocalizedText(i18n, textKey);
+    return CreateLabel(bounds, localizedText, wrapText);
+}
+
+// Create a portrait dialogue with localized text
+RayDialComponent* CreateLocalizedPortraitDialogue(Rectangle bounds, const char* speakerNameKey, const char* dialogueTextKey, Color portraitColor, RayDialI18N* i18n) {
+    const char* localizedSpeakerName = GetLocalizedText(i18n, speakerNameKey);
+    const char* localizedDialogueText = GetLocalizedText(i18n, dialogueTextKey);
+    return CreatePortraitDialogue(bounds, localizedSpeakerName, localizedDialogueText, portraitColor);
+}
+
+// Set localized text for a button
+void SetLocalizedButtonText(RayDialComponent* component, const char* textKey, RayDialI18N* i18n) {
+    if (!component || !textKey || !i18n || component->type != RAYDIAL_BUTTON) return;
+    
+    RayDialButtonData* data = (RayDialButtonData*)component->data;
+    const char* localizedText = GetLocalizedText(i18n, textKey);
+    data->text = localizedText;
+}
+
+// Set localized text for a label
+void SetLocalizedLabelText(RayDialComponent* component, const char* textKey, RayDialI18N* i18n) {
+    if (!component || !textKey || !i18n || component->type != RAYDIAL_LABEL) return;
+    
+    RayDialLabelData* data = (RayDialLabelData*)component->data;
+    const char* localizedText = GetLocalizedText(i18n, textKey);
+    data->text = localizedText;
+}
+
+// Set localized dialogue text for a portrait dialogue
+void SetLocalizedPortraitDialogueText(RayDialComponent* component, const char* dialogueTextKey, RayDialI18N* i18n) {
+    if (!component || !dialogueTextKey || !i18n || component->type != RAYDIAL_PORTRAIT_DIALOGUE) return;
+    
+    RayDialPortraitDialogueData* data = (RayDialPortraitDialogueData*)component->data;
+    const char* localizedDialogueText = GetLocalizedText(i18n, dialogueTextKey);
+    
+    // Free previous text if dynamically allocated
+    if (data->dialogueText) {
+        free((void*)data->dialogueText);
+        data->dialogueText = NULL;
+    }
+    
+    // Make a copy of the new text
+    size_t len = strlen(localizedDialogueText) + 1;
+    char* textCopy = (char*)malloc(len);
+    if (textCopy) {
+        strcpy(textCopy, localizedDialogueText);
+        data->dialogueText = textCopy;
+    }
+    
+    // Reset styled text when changing regular text
+    if (data->styledText) {
+        FreeStyledText(data->styledText);
+        data->styledText = NULL;
+    }
+    
+    data->useStyledText = false;
+}
+
+// Set localized speaker name for a portrait dialogue
+void SetLocalizedPortraitDialogueSpeaker(RayDialComponent* component, const char* speakerNameKey, RayDialI18N* i18n) {
+    if (!component || !speakerNameKey || !i18n || component->type != RAYDIAL_PORTRAIT_DIALOGUE) return;
+    
+    RayDialPortraitDialogueData* data = (RayDialPortraitDialogueData*)component->data;
+    const char* localizedSpeakerName = GetLocalizedText(i18n, speakerNameKey);
+    
+    // Free previous name if dynamically allocated
+    if (data->speakerName) {
+        free((void*)data->speakerName);
+        data->speakerName = NULL;
+    }
+    
+    // Make a copy of the new name
+    size_t len = strlen(localizedSpeakerName) + 1;
+    char* nameCopy = (char*)malloc(len);
+    if (nameCopy) {
+        strcpy(nameCopy, localizedSpeakerName);
+        data->speakerName = nameCopy;
+    }
+}
+
+// Set localized styled text for a portrait dialogue
+void SetLocalizedPortraitDialogueStyledText(RayDialComponent* component, const char* formattedTextKey, RayDialI18N* i18n) {
+    if (!component || !formattedTextKey || !i18n || component->type != RAYDIAL_PORTRAIT_DIALOGUE) return;
+    
+    RayDialPortraitDialogueData* data = (RayDialPortraitDialogueData*)component->data;
+    
+    // Free existing styled text if any
+    if (data->styledText) {
+        FreeStyledText(data->styledText);
+        data->styledText = NULL;
+    }
+    
+    // Free existing plain text if any
+    if (data->dialogueText) {
+        free((void*)data->dialogueText);
+        data->dialogueText = NULL;
+    }
+    
+    // Get localized and styled text
+    RayDialTextSegment* styledText = GetLocalizedStyledText(i18n, formattedTextKey, data->textColor, (float)data->fontSize);
+    if (styledText) {
+        data->styledText = styledText;
+        data->useStyledText = true;
+        
+        // Also set a plain text version for accessibility or fallback
+        const char* localizedText = GetLocalizedText(i18n, formattedTextKey);
+        if (localizedText) {
+            size_t len = strlen(localizedText) + 1;
+            char* textCopy = (char*)malloc(len);
+            if (textCopy) {
+                strcpy(textCopy, localizedText);
+                data->dialogueText = textCopy;
+            }
+        }
+    } else {
+        // Fallback to plain text if parsing fails
+        const char* localizedText = GetLocalizedText(i18n, formattedTextKey);
+        SetPortraitDialogueText(component, localizedText);
+        data->useStyledText = false;
+    }
 }

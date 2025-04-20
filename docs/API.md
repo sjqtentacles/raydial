@@ -196,6 +196,9 @@ void UpdateDialogueManager(
 void DrawDialogueManager(
     RayDialManager* manager     // Dialogue manager to draw
 );
+// NOTE: Draws all active components using Raylib's GetFontDefault(). 
+// Does not currently support custom fonts per component or non-Latin character rendering 
+// unless a suitable default font is loaded or manual drawing is implemented.
 ```
 
 ### Node Transitions
@@ -293,6 +296,8 @@ void SetPortraitDialogueStyledText(
     RayDialComponent* component,  // Portrait dialogue component
     const char* formattedText     // Text with formatting tags
 );
+// NOTE: Text drawing uses Raylib's GetFontDefault(). 
+// Requires manual drawing workaround for custom fonts/non-Latin scripts.
 
 // Parse formatted text into styled text segments
 RayDialTextSegment* ParseStyledText(
@@ -425,4 +430,43 @@ void OnHostileClicked(void* userData) {
     RayDialManager* manager = (RayDialManager*)userData;
     TransitionToNode(manager, "hostile");
 }
+``` 
+
+## Localization (I18N)
+
+// Create a button with localized text
+RayDialComponent* CreateLocalizedButton(Rectangle bounds, const char* textKey, RayDialCallback onClick, void* userData, RayDialI18N* i18n);
+// NOTE: Text drawing uses Raylib's GetFontDefault(). 
+
+// Create a label with localized text
+RayDialComponent* CreateLocalizedLabel(Rectangle bounds, const char* textKey, bool wrapText, RayDialI18N* i18n);
+// NOTE: Text drawing uses Raylib's GetFontDefault(). 
+
+// Create a portrait dialogue with localized text
+RayDialComponent* CreateLocalizedPortraitDialogue(Rectangle bounds, const char* speakerNameKey, const char* dialogueTextKey, Color portraitColor, RayDialI18N* i18n);
+// NOTE: Text drawing uses Raylib's GetFontDefault(). 
+
+// Set localized text for a button
+void SetLocalizedButtonText(RayDialComponent* component, const char* textKey, RayDialI18N* i18n);
+// NOTE: Text drawing uses Raylib's GetFontDefault(). 
+
+// Set localized text for a label
+void SetLocalizedLabelText(RayDialComponent* component, const char* textKey, RayDialI18N* i18n);
+// NOTE: Text drawing uses Raylib's GetFontDefault(). 
+
+// Set localized dialogue text for a portrait dialogue
+void SetLocalizedPortraitDialogueText(RayDialComponent* component, const char* dialogueTextKey, RayDialI18N* i18n);
+// NOTE: Text drawing uses Raylib's GetFontDefault(). 
+
+// Set localized speaker name for a portrait dialogue
+void SetLocalizedPortraitDialogueSpeaker(RayDialComponent* component, const char* speakerNameKey, RayDialI18N* i18n);
+// NOTE: Text drawing uses Raylib's GetFontDefault(). 
+
+// Set localized styled text for a portrait dialogue
+void SetLocalizedPortraitDialogueStyledText(RayDialComponent* component, const char* formattedTextKey, RayDialI18N* i18n);
+// NOTE: Text drawing uses Raylib's GetFontDefault(). 
+// NOTE: Requires manual drawing workaround for custom fonts/non-Latin scripts. 
+
+// Get a translated string
+const char* GetLocalizedText(RayDialI18N* i18n, const char* key);
 ``` 

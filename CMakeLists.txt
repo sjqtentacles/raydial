@@ -16,9 +16,11 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(LIBRARY_NAME raydial)
 set(SOURCES 
     src/raydial.c
+    src/raydial_i18n.c
 )
 set(HEADERS 
     include/raydial.h
+    include/raydial_i18n.h
 )
 
 # Create library

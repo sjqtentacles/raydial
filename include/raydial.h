@@ -149,6 +149,9 @@ typedef struct {
     void* userData;
 } RayDialManager;
 
+// Forward declaration of localization manager
+typedef struct RayDialI18N RayDialI18N;
+
 // Function declarations for UI components
 RayDialComponent* CreateButton(Rectangle bounds, const char* text, RayDialCallback onClick, void* userData);
 RayDialComponent* CreateLabel(Rectangle bounds, const char* text, bool wrapText);
@@ -195,6 +198,16 @@ void SetPortraitDialogueStyledText(RayDialComponent* component, const char* form
 RayDialTextSegment* ParseStyledText(const char* formattedText, Color defaultColor, float defaultFontSize);
 void FreeStyledText(RayDialTextSegment* styledText);
 Color GetColorFromName(const char* colorName);
+
+// Localization utility functions
+RayDialComponent* CreateLocalizedButton(Rectangle bounds, const char* textKey, RayDialCallback onClick, void* userData, RayDialI18N* i18n);
+RayDialComponent* CreateLocalizedLabel(Rectangle bounds, const char* textKey, bool wrapText, RayDialI18N* i18n);
+RayDialComponent* CreateLocalizedPortraitDialogue(Rectangle bounds, const char* speakerNameKey, const char* dialogueTextKey, Color portraitColor, RayDialI18N* i18n);
+void SetLocalizedButtonText(RayDialComponent* component, const char* textKey, RayDialI18N* i18n);
+void SetLocalizedLabelText(RayDialComponent* component, const char* textKey, RayDialI18N* i18n);
+void SetLocalizedPortraitDialogueText(RayDialComponent* component, const char* dialogueTextKey, RayDialI18N* i18n);
+void SetLocalizedPortraitDialogueSpeaker(RayDialComponent* component, const char* speakerNameKey, RayDialI18N* i18n);
+void SetLocalizedPortraitDialogueStyledText(RayDialComponent* component, const char* formattedTextKey, RayDialI18N* i18n);
 
 #ifdef __cplusplus
 }

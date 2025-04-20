@@ -44,6 +44,7 @@ The project includes several examples:
 - **Animated Text**: Text that types out with configurable speed
 - **Portrait Dialogue**: Character dialogue with portrait images
 - **Styled Dialogue**: Rich text formatting with colors, sizes, and styles
+- **Localization Example**: Example of localization support
 
 ## Dependencies
 
@@ -77,6 +78,7 @@ After building, run the examples from the build directory:
 ./examples/4_image_gallery_example
 ./examples/5_portrait_dialogue_example
 ./examples/6_styled_dialogue_example
+./examples/7_localization_example
 ```
 
 ## Usage
