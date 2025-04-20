@@ -10,6 +10,22 @@ A component-based dialogue system and UI toolkit for [Raylib](https://www.raylib
 - **Animated Text**: Typewriter-style text animation for dialogue
 - **Event-Based Interactions**: Callback system for handling user input
 
+## Screenshots
+
+Here are some screenshots of the examples in action:
+
+### Basic Example
+![Basic Example](docs/images/basic_example.png)
+
+### Counter Example
+![Counter Example](docs/images/counter_example.png)
+
+### Dialogue Tree
+![Dialogue Tree](docs/images/dialogue_tree.png)
+
+### Animated Text
+![Animated Text](docs/images/animated_text.png)
+
 ## Examples
 
 The project includes several examples:
@@ -44,10 +60,10 @@ make
 After building, run the examples from the build directory:
 
 ```bash
-./examples/basic_example
-./examples/advanced_example
-./examples/dialogue_tree_example
-./examples/4_animated_text_example
+./examples/0_basic_example
+./examples/1_counter_example
+./examples/2_dialogue_tree_example
+./examples/3_animated_text_example
 ```
 
 ## Usage
