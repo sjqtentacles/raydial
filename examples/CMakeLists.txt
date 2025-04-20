@@ -23,6 +23,9 @@ target_link_libraries(6_styled_dialogue_example PRIVATE raydial)
 add_executable(7_localization_example 7_localization_example.c)
 target_link_libraries(7_localization_example PRIVATE raydial)
 
+add_executable(8_enter_dialogue_example 8_enter_dialogue_example.c)
+target_link_libraries(8_enter_dialogue_example PRIVATE raydial)
+
 add_executable(generate_portraits generate_portraits.c)
 target_link_libraries(generate_portraits PRIVATE raylib)
 
@@ -36,5 +39,6 @@ install(TARGETS
     5_portrait_dialogue_example
     6_styled_dialogue_example
     7_localization_example
+    8_enter_dialogue_example
     DESTINATION ${CMAKE_INSTALL_BINDIR}
 ) 

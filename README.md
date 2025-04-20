@@ -37,6 +37,9 @@ Here are some screenshots of the examples in action:
 ### Internationalization
 ![Internationalization](docs/images/internationalization.gif)
 
+### Press Space/Enter To Continue
+![Press Space/Enter To Continue](docs/images/enter.gif)
+
 ## Examples
 
 The project includes several examples:
