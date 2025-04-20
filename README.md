@@ -15,16 +15,16 @@ A component-based dialogue system and UI toolkit for [Raylib](https://www.raylib
 Here are some screenshots of the examples in action:
 
 ### Basic Example
-![Basic Example](docs/images/basic_example.png)
+![Basic Example](docs/images/basic.png)
 
 ### Counter Example
-![Counter Example](docs/images/counter_example.png)
+![Counter Example](docs/images/counter.gif)
 
 ### Dialogue Tree
-![Dialogue Tree](docs/images/dialogue_tree.png)
+![Dialogue Tree](docs/images/tree.gif)
 
 ### Animated Text
-![Animated Text](docs/images/animated_text.png)
+![Animated Text](docs/images/animated.gif)
 
 ## Examples
 
