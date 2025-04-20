@@ -120,9 +120,9 @@ void OnNextDialogue(void* userData) {
 
 int main(void) {
     // Initialize window
-    const int screenWidth = 800;
-    const int screenHeight = 600;
-    InitWindow(screenWidth, screenHeight, "Styled Dialogue Example");
+    const int screenWidth = 1024; // Increased width
+    const int screenHeight = 768; // Increased height
+    InitWindow(screenWidth, screenHeight, "Styled Dialogue Example (Improved)");
     SetTargetFPS(60);
     
     // Initialize dialogue entries with rich text styling
@@ -158,23 +158,23 @@ int main(void) {
     // Create dialogue manager
     RayDialManager* manager = CreateDialogueManager(rootNode);
     
-    // Create main UI panel
+    // Create main UI panel (larger and centered)
     RayDialComponent* panel = CreatePanel(
-        (Rectangle){ 50, 50, 700, 500 },
+        (Rectangle){ (screenWidth - 800) / 2, (screenHeight - 600) / 2, 800, 600 }, // Centered 800x600 panel
         RAYWHITE
     );
     
-    // Create title
+    // Create title (adjust position)
     RayDialComponent* title = CreateLabel(
-        (Rectangle){ 70, 70, 660, 40 },
+        (Rectangle){ panel->bounds.x + 20, panel->bounds.y + 20, panel->bounds.width - 40, 40 },
         "Styled Dialogue Text Example",
         true
     );
     
-    // Create portrait dialogue component
+    // Create portrait dialogue component (make shorter again)
     DialogueEntry* firstEntry = &conversation.entries[0];
     RayDialComponent* portraitDialogue = CreatePortraitDialogue(
-        (Rectangle){ 70, 120, 660, 300 },
+        (Rectangle){ panel->bounds.x + 20, panel->bounds.y + 70, panel->bounds.width - 40, 330 }, // Reduced height from 350 to 330
         firstEntry->speakerName,
         "Plain text version",  // Will be replaced with styled text
         firstEntry->portraitState == CHARACTER_HAPPY ? YELLOW :
@@ -191,17 +191,23 @@ int main(void) {
     // Set initial portrait position
     SetPortraitDialoguePosition(portraitDialogue, firstEntry->showOnRight);
     
-    // Create next dialogue button
+    // Create next dialogue button (adjust Y position)
+    float buttonY = panel->bounds.y + 70 + 330 + 10; // Position below shorter dialogue box + padding
     RayDialComponent* nextButton = CreateButton(
-        (Rectangle){ 325, 430, 150, 40 },
+        (Rectangle){ panel->bounds.x + (panel->bounds.width - 180) / 2, buttonY, 180, 40 }, // Use calculated buttonY
         "Next Dialogue",
         OnNextDialogue,
         &conversation
     );
     
-    // Create info label
+    // Create info label (adjust Y position and give more height)
+    float legendHeightEstimate = 50; // Approximate height needed for legend text
+    float legendY = buttonY + 40 + 10; // Position below button + padding
+    float infoLabelY = legendY + legendHeightEstimate; 
+    float infoLabelHeight = panel->bounds.y + panel->bounds.height - infoLabelY - 20; // Fill remaining space minus bottom padding
+    
     RayDialComponent* infoLabel = CreateLabel(
-        (Rectangle){ 70, 480, 660, 30 },
+        (Rectangle){ panel->bounds.x + 20, infoLabelY, panel->bounds.width - 40, infoLabelHeight }, // Use calculated Y and Height
         "This example demonstrates styled text with colors, sizes, and formatting",
         true
     );
@@ -222,7 +228,7 @@ int main(void) {
         
         // Draw
         BeginDrawing();
-            ClearBackground(SKYBLUE);
+            ClearBackground(DARKGRAY); // Slightly different background
             
             // Draw manager (UI components)
             DrawDialogueManager(manager);
@@ -230,32 +236,35 @@ int main(void) {
             // Custom drawing for the portrait (override the default solid color)
             DialogueEntry* currentEntry = &conversation.entries[conversation.currentIndex];
             Rectangle portraitBounds;
+            float portraitAreaY = portraitDialogue->bounds.y + 10;
+            float portraitAreaSize = 100; // Keep portrait size fixed for now
+            
             if (currentEntry->showOnRight) {
                 portraitBounds = (Rectangle){ 
-                    portraitDialogue->bounds.x + portraitDialogue->bounds.width - 110, 
-                    portraitDialogue->bounds.y + 10, 
-                    100, 
-                    100 
+                    portraitDialogue->bounds.x + portraitDialogue->bounds.width - portraitAreaSize - 10, 
+                    portraitAreaY, 
+                    portraitAreaSize, 
+                    portraitAreaSize 
                 };
             } else {
                 portraitBounds = (Rectangle){ 
                     portraitDialogue->bounds.x + 10, 
-                    portraitDialogue->bounds.y + 10, 
-                    100, 
-                    100 
+                    portraitAreaY, 
+                    portraitAreaSize, 
+                    portraitAreaSize 
                 };
             }
             
             // Draw the emotional face
             DrawEmotionalFace(portraitBounds, currentEntry->portraitState);
             
-            // Draw formatting legend
-            DrawText("Formatting Tags:", 70, 520, 20, BLACK);
-            DrawText("[color=red]text[/color]", 70, 550, 16, RED);
-            DrawText("[size=large]text[/size]", 270, 550, 16, BLACK);
-            DrawText("[b]text[/b] (bold)", 470, 550, 16, BLACK);
+            // Draw formatting legend (Adjust Y relative to button)
+            DrawText("Formatting Tags:", panel->bounds.x + 20, legendY, 20, BLACK);
+            DrawText("[color=red]text[/color]", panel->bounds.x + 20, legendY + 30, 16, RED);
+            DrawText("[size=large]text[/size]", panel->bounds.x + 220, legendY + 30, 16, BLACK);
+            DrawText("[b]text[/b] (bold)", panel->bounds.x + 420, legendY + 30, 16, BLACK);
             
-            // Draw help text
+            // Draw help text (Relative to screen bottom)
             DrawText("Press ESC to exit", 10, screenHeight - 30, 20, DARKGRAY);
         EndDrawing();
     }

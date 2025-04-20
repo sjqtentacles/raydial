@@ -768,81 +768,109 @@ void DrawComponent(RayDialComponent* component) {
                 BeginScissorMode(textArea.x, textArea.y, textArea.width, textArea.height);
                 
                 if (data->useStyledText && data->styledText) {
-                    // Draw styled text segments
+                    // --- Draw Styled Text Segments (Corrected Implementation) --- 
                     float currentX = textArea.x;
                     float currentY = textArea.y;
-                    float lineHeight = (float)data->fontSize * 1.5f;
+                    float baseFontSize = (float)data->fontSize;
+                    float lineHeight = baseFontSize * 1.5f;
+                    float spaceWidth = MeasureTextEx(GetFontDefault(), " ", baseFontSize, 1.0f).x; // Use default font for measurements
                     float maxWidth = textArea.width;
+
+                    #define MAX_WORD_BUFFER_LIB 128 // Max chars for a single word buffer
+                    char wordBuffer[MAX_WORD_BUFFER_LIB];
                     
                     RayDialTextSegment* segment = data->styledText;
                     while (segment) {
-                        // Get text properties from styles
-                        Color textColor = data->textColor;
-                        float fontSize = (float)data->fontSize;
-                        bool isBold = false;
-                        bool isItalic = false;
-                        
-                        // Apply styles
+                        // Determine style for this segment
+                        Color segmentColor = data->textColor; // Default from component data
+                        float segmentFontSize = baseFontSize; // Default from component data
+                        // TODO: Add bold/italic handling if GetFontDefault() variants are available or custom fonts are passed
+
                         RayDialTextStyle* style = segment->styles;
                         while (style) {
-                            switch (style->type) {
-                                case RAYDIAL_TEXT_COLORED:
-                                    textColor = style->value.color;
-                                    break;
-                                case RAYDIAL_TEXT_SIZED:
-                                    fontSize = style->value.fontSize;
-                                    break;
-                                case RAYDIAL_TEXT_BOLD:
-                                    isBold = true;
-                                    break;
-                                case RAYDIAL_TEXT_ITALIC:
-                                    isItalic = true;
-                                    break;
-                                default:
-                                    break;
+                            if (style->type == RAYDIAL_TEXT_COLORED) {
+                                segmentColor = style->value.color;
+                            } else if (style->type == RAYDIAL_TEXT_SIZED) {
+                                segmentFontSize = style->value.fontSize;
                             }
+                            // Add cases for bold/italic here if implemented
                             style = style->next;
                         }
-                        
-                        // Simple text wrapping
-                        const char* text = segment->text;
-                        if (text) {
-                            // Handle newlines in text
-                            char* textCopy = strdup(text);
-                            if (!textCopy) {
-                                EndScissorMode();
-                                break;
-                            }
-                            
-                            char* line = strtok(textCopy, "\n");
-                            while (line) {
-                                // Measure text to see if it fits on the current line
-                                int textWidth = MeasureText(line, (int)fontSize);
-                                
-                                if (currentX + textWidth > textArea.x + maxWidth) {
-                                    // Move to next line
-                                    currentX = textArea.x;
-                                    currentY += lineHeight;
-                                }
-                                
-                                // Draw text with current style
-                                DrawText(line, (int)currentX, (int)currentY, (int)fontSize, textColor);
-                                
-                                // Move to next line
-                                currentY += lineHeight;
+
+                        // Word wrapping logic adapted from example 7
+                        const char* textPtr = segment->text;
+                        while (textPtr && *textPtr) {
+                            // Handle explicit newlines first
+                            if (*textPtr == '\n') {
                                 currentX = textArea.x;
-                                
-                                // Get next line
-                                line = strtok(NULL, "\n");
+                                currentY += lineHeight;
+                                textPtr++;
+                                continue; // Move to next character
+                            }
+
+                            // Find the next word or end of segment/newline
+                            const char* wordStart = textPtr;
+                            const char* wordEnd = wordStart;
+                            while (*wordEnd && *wordEnd != ' ' && *wordEnd != '\n') {
+                                wordEnd++;
                             }
                             
-                            free(textCopy);
+                            int wordLen = wordEnd - wordStart;
+                            if (wordLen <= 0) { 
+                                if (*textPtr == ' ') { // Handle space separately
+                                   wordLen = 1;
+                                   wordEnd = textPtr + 1;
+                                } else {
+                                   break; // End of segment or unexpected state
+                                }
+                            }
+                            if (wordLen >= MAX_WORD_BUFFER_LIB) wordLen = MAX_WORD_BUFFER_LIB - 1; 
+
+                            // Copy word to buffer
+                            strncpy(wordBuffer, wordStart, wordLen);
+                            wordBuffer[wordLen] = '\0';
+
+                            // Measure the word with its style using the default font
+                            Vector2 wordSize = MeasureTextEx(GetFontDefault(), wordBuffer, segmentFontSize, 1.0f);
+
+                            // Check if word fits on the current line
+                            // Add space width if the current line isn't empty (currentX > textArea.x)
+                            float effectiveWordWidth = wordSize.x + (currentX > textArea.x ? spaceWidth : 0);
+
+                            if (currentX > textArea.x && currentX + wordSize.x > textArea.x + maxWidth) {
+                                // Doesn't fit, move to the next line
+                                currentX = textArea.x;
+                                currentY += lineHeight;
+                                // Recheck vertical bounds after line break
+                                if (currentY >= textArea.y + textArea.height) break; 
+                            }
+
+                            // Add space if not the first word on the line
+                            if (currentX > textArea.x) {
+                                currentX += spaceWidth;
+                            }
+
+                            // Draw the word if within vertical bounds
+                            if (currentY + segmentFontSize > textArea.y && currentY < textArea.y + textArea.height) {
+                                DrawTextEx(GetFontDefault(), wordBuffer, 
+                                           (Vector2){currentX, currentY}, 
+                                           segmentFontSize, 1.0f, segmentColor);
+                            }
+
+                            currentX += wordSize.x; // Advance position
+                            textPtr = wordEnd; // Move pointer to start of next word/char
+                            
+                            // Skip trailing space if we copied one
+                            if (*textPtr == ' ') textPtr++;
                         }
                         
-                        segment = segment->next;
+                        // Check vertical bounds after processing segment
+                        if (currentY >= textArea.y + textArea.height) break;
+
+                        segment = segment->next; // Next segment
                     }
                 } else if (data->wrapText) {
-                    // Word-wrapped text using DrawTextEx with manual wrapping
+                    // Word-wrapped text using DrawTextEx with manual wrapping (Existing Plain Text Logic)
                     const char* text = data->dialogueText;
                     float fontSize = (float)data->fontSize;
                     float spacing = fontSize * 0.1f;
