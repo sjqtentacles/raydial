@@ -8,6 +8,8 @@ A component-based dialogue system and UI toolkit for [Raylib](https://www.raylib
 - **Dialogue Tree System**: Build branching conversations with choice-based progression
 - **Scrollable Text**: Automatic word wrapping and scrolling for text content
 - **Animated Text**: Typewriter-style text animation for dialogue
+- **Styled Text**: Rich text support with colors, sizes, bold, and italic formatting
+- **Portrait Dialogues**: Character dialogue boxes with portraits and speaker names
 - **Event-Based Interactions**: Callback system for handling user input
 
 ## Screenshots
@@ -26,6 +28,12 @@ Here are some screenshots of the examples in action:
 ### Animated Text
 ![Animated Text](docs/images/animated.gif)
 
+### Portrait Dialogue
+![Portrait Dialogue](docs/images/portrait.png)
+
+### Styled Text
+![Styled Text](docs/images/styled.png)
+
 ## Examples
 
 The project includes several examples:
@@ -34,6 +42,8 @@ The project includes several examples:
 - **Counter Example**: Interactive button-based counter
 - **Dialogue Tree**: Branching dialogue demonstration
 - **Animated Text**: Text that types out with configurable speed
+- **Portrait Dialogue**: Character dialogue with portrait images
+- **Styled Dialogue**: Rich text formatting with colors, sizes, and styles
 
 ## Dependencies
 
@@ -64,6 +74,9 @@ After building, run the examples from the build directory:
 ./examples/1_counter_example
 ./examples/2_dialogue_tree_example
 ./examples/3_animated_text_example
+./examples/4_image_gallery_example
+./examples/5_portrait_dialogue_example
+./examples/6_styled_dialogue_example
 ```
 
 ## Usage

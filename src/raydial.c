@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
+#include <ctype.h>
 
 // Component creation functions
 RayDialComponent* CreateButton(Rectangle bounds, const char* text, RayDialCallback onClick, void* userData) {
@@ -76,6 +77,342 @@ RayDialComponent* CreatePanel(Rectangle bounds, Color backgroundColor) {
     return component;
 }
 
+// Function to get color from name
+Color GetColorFromName(const char* colorName) {
+    if (!colorName) return BLACK;
+    
+    if (strcmp(colorName, "red") == 0) return RED;
+    if (strcmp(colorName, "green") == 0) return GREEN;
+    if (strcmp(colorName, "blue") == 0) return BLUE;
+    if (strcmp(colorName, "yellow") == 0) return YELLOW;
+    if (strcmp(colorName, "purple") == 0) return PURPLE;
+    if (strcmp(colorName, "orange") == 0) return ORANGE;
+    if (strcmp(colorName, "white") == 0) return WHITE;
+    if (strcmp(colorName, "black") == 0) return BLACK;
+    if (strcmp(colorName, "gray") == 0 || strcmp(colorName, "grey") == 0) return GRAY;
+    if (strcmp(colorName, "darkgray") == 0) return DARKGRAY;
+    if (strcmp(colorName, "lightgray") == 0) return LIGHTGRAY;
+    
+    // Default color if name not recognized
+    return BLACK;
+}
+
+// Helper function to check if a string starts with a prefix
+bool StartsWith(const char* str, const char* prefix) {
+    return strncmp(str, prefix, strlen(prefix)) == 0;
+}
+
+// Free styled text segments
+void FreeStyledText(RayDialTextSegment* styledText) {
+    while (styledText) {
+        RayDialTextSegment* next = styledText->next;
+        
+        // Free text
+        if (styledText->text) {
+            free(styledText->text);
+        }
+        
+        // Free styles
+        RayDialTextStyle* style = styledText->styles;
+        while (style) {
+            RayDialTextStyle* nextStyle = style->next;
+            free(style);
+            style = nextStyle;
+        }
+        
+        // Free segment
+        free(styledText);
+        styledText = next;
+    }
+}
+
+// Parse formatted text with styling tags
+RayDialTextSegment* ParseStyledText(const char* formattedText, Color defaultColor, float defaultFontSize) {
+    if (!formattedText) return NULL;
+    
+    RayDialTextSegment* head = NULL;
+    RayDialTextSegment* current = NULL;
+    
+    const char* pos = formattedText;
+    
+    // Stack to keep track of nested styles
+    typedef struct StyleStackItem {
+        char tagName[32];        // Tag name (e.g., "color", "size", "b", "i")
+        char tagValue[32];       // Tag value (e.g., "red", "large")
+        const char* closingTag;  // Pointer to the expected closing tag string
+    } StyleStackItem;
+    
+    StyleStackItem styleStack[10];  // Maximum nesting depth of 10
+    int stackDepth = 0;
+    
+    while (*pos) {
+        // Check for opening tag
+        if (*pos == '[' && *(pos+1) != '/') {  // Opening tag (not a closing tag)
+            const char* tagStart = pos;
+            const char* tagEnd = strchr(pos, ']');
+            
+            // If we found a valid tag
+            if (tagEnd) {
+                // Parse tag
+                char tag[64];
+                int tagLen = tagEnd - tagStart - 1;
+                if (tagLen < 64) {
+                    strncpy(tag, tagStart + 1, tagLen);
+                    tag[tagLen] = '\0';
+                    
+                    // Process this tag
+                    bool isValidTag = false;
+                    char tagName[32] = {0};
+                    char tagValue[32] = {0};
+                    
+                    if (StartsWith(tag, "color=")) {
+                        strcpy(tagName, "color");
+                        strcpy(tagValue, tag + 6);  // Skip "color="
+                        isValidTag = true;
+                    } else if (StartsWith(tag, "size=")) {
+                        strcpy(tagName, "size");
+                        strcpy(tagValue, tag + 5);  // Skip "size="
+                        isValidTag = true;
+                    } else if (strcmp(tag, "b") == 0) {
+                        strcpy(tagName, "b");
+                        isValidTag = true;
+                    } else if (strcmp(tag, "i") == 0) {
+                        strcpy(tagName, "i");
+                        isValidTag = true;
+                    }
+                    
+                    if (isValidTag && stackDepth < 10) {
+                        // Build the closing tag string to look for
+                        char closingTag[16];
+                        sprintf(closingTag, "[/%s]", tagName);
+                        
+                        // Add to style stack
+                        strcpy(styleStack[stackDepth].tagName, tagName);
+                        strcpy(styleStack[stackDepth].tagValue, tagValue);
+                        styleStack[stackDepth].closingTag = strstr(tagEnd, closingTag);
+                        
+                        if (styleStack[stackDepth].closingTag) {
+                            stackDepth++;
+                            pos = tagEnd + 1;  // Move past this opening tag
+                            continue;
+                        }
+                    }
+                }
+                
+                // If we get here, either not a valid tag or couldn't find closing tag
+                // Treat as regular text
+                pos++;
+                continue;
+            }
+        }
+        // Check for closing tag - if we see one, it should match our top of stack
+        else if (*pos == '[' && *(pos+1) == '/') {
+            const char* tagEnd = strchr(pos, ']');
+            if (tagEnd && stackDepth > 0) {
+                // Check if this matches our expected closing tag
+                const char* expectedTag = styleStack[stackDepth-1].closingTag;
+                if (expectedTag == pos) {
+                    // Pop from stack
+                    stackDepth--;
+                    pos = tagEnd + 1;  // Move past this closing tag
+                    continue;
+                }
+            }
+            // Not matching a tag on our stack - treat as regular text
+            pos++;
+            continue;
+        }
+        
+        // If we get here, we're processing regular text until the next tag boundary
+        const char* textStart = pos;
+        const char* textEnd;
+        
+        // Figure out where text ends - either at closing tag of current style or at new opening tag
+        if (stackDepth > 0) {
+            // We're inside a styled segment, text ends at current style's closing tag
+            textEnd = styleStack[stackDepth-1].closingTag;
+            
+            // But we also need to check for nested tags
+            const char* nextOpeningTag = strchr(pos, '[');
+            if (nextOpeningTag && nextOpeningTag < textEnd) {
+                textEnd = nextOpeningTag;
+            }
+        } else {
+            // Not in any styled segment, text ends at next opening tag or end of string
+            const char* nextTag = strchr(pos, '[');
+            textEnd = nextTag ? nextTag : pos + strlen(pos);
+        }
+        
+        // Create text segment if we have text
+        if (textEnd > textStart) {
+            RayDialTextSegment* segment = (RayDialTextSegment*)malloc(sizeof(RayDialTextSegment));
+            if (!segment) return head; // Out of memory
+            
+            segment->next = NULL;
+            segment->styles = NULL;
+            
+            // Allocate and copy text
+            int textLen = textEnd - textStart;
+            segment->text = (char*)malloc(textLen + 1);
+            if (!segment->text) {
+                free(segment);
+                return head; // Out of memory
+            }
+            
+            strncpy(segment->text, textStart, textLen);
+            segment->text[textLen] = '\0';
+            
+            // Apply all styles from stack to this segment
+            RayDialTextStyle* lastStyle = NULL;
+            
+            // First add default style
+            RayDialTextStyle* defaultStyle = (RayDialTextStyle*)malloc(sizeof(RayDialTextStyle));
+            if (!defaultStyle) {
+                free(segment->text);
+                free(segment);
+                return head; // Out of memory
+            }
+            
+            defaultStyle->type = RAYDIAL_TEXT_REGULAR;
+            defaultStyle->next = NULL;
+            segment->styles = defaultStyle;
+            lastStyle = defaultStyle;
+            
+            // Apply stacked styles
+            for (int i = 0; i < stackDepth; i++) {
+                RayDialTextStyle* style = (RayDialTextStyle*)malloc(sizeof(RayDialTextStyle));
+                if (!style) {
+                    // Cleanup and return on error
+                    RayDialTextStyle* current = segment->styles;
+                    while (current) {
+                        RayDialTextStyle* next = current->next;
+                        free(current);
+                        current = next;
+                    }
+                    free(segment->text);
+                    free(segment);
+                    return head;
+                }
+                
+                // Set style properties based on tag
+                if (strcmp(styleStack[i].tagName, "color") == 0) {
+                    style->type = RAYDIAL_TEXT_COLORED;
+                    style->value.color = GetColorFromName(styleStack[i].tagValue);
+                } else if (strcmp(styleStack[i].tagName, "size") == 0) {
+                    style->type = RAYDIAL_TEXT_SIZED;
+                    
+                    // Parse size value
+                    if (strcmp(styleStack[i].tagValue, "small") == 0) {
+                        style->value.fontSize = defaultFontSize * 0.8f;
+                    } else if (strcmp(styleStack[i].tagValue, "large") == 0) {
+                        style->value.fontSize = defaultFontSize * 1.5f;
+                    } else if (strcmp(styleStack[i].tagValue, "huge") == 0) {
+                        style->value.fontSize = defaultFontSize * 2.0f;
+                    } else {
+                        // Try to parse numeric value
+                        char* endPtr;
+                        float size = strtof(styleStack[i].tagValue, &endPtr);
+                        if (endPtr != styleStack[i].tagValue) {
+                            style->value.fontSize = size;
+                        } else {
+                            style->value.fontSize = defaultFontSize;
+                        }
+                    }
+                } else if (strcmp(styleStack[i].tagName, "b") == 0) {
+                    style->type = RAYDIAL_TEXT_BOLD;
+                } else if (strcmp(styleStack[i].tagName, "i") == 0) {
+                    style->type = RAYDIAL_TEXT_ITALIC;
+                }
+                
+                style->next = NULL;
+                lastStyle->next = style;
+                lastStyle = style;
+            }
+            
+            // Add segment to list
+            if (!head) {
+                head = segment;
+                current = segment;
+            } else {
+                current->next = segment;
+                current = segment;
+            }
+            
+            // Move position to end of processed text
+            pos = textEnd;
+        } else {
+            // No text to process, move to next character
+            pos++;
+        }
+    }
+    
+    return head;
+}
+
+// Create a portrait dialogue component with a color-based portrait
+RayDialComponent* CreatePortraitDialogue(Rectangle bounds, const char* speakerName, const char* dialogueText, Color portraitColor) {
+    RayDialComponent* component = (RayDialComponent*)malloc(sizeof(RayDialComponent));
+    RayDialPortraitDialogueData* data = (RayDialPortraitDialogueData*)malloc(sizeof(RayDialPortraitDialogueData));
+    
+    component->type = RAYDIAL_PORTRAIT_DIALOGUE;
+    component->bounds = bounds;
+    component->visible = true;
+    component->enabled = true;
+    component->data = data;
+    component->onClick = NULL;
+    component->userData = NULL;
+    component->next = NULL;
+    
+    // Properly allocate memory for strings
+    data->speakerName = NULL;
+    data->dialogueText = NULL;
+    data->styledText = NULL;
+    data->useStyledText = false;
+    
+    if (speakerName) {
+        size_t len = strlen(speakerName) + 1;
+        char* nameCopy = (char*)malloc(len);
+        if (nameCopy) {
+            strcpy(nameCopy, speakerName);
+            data->speakerName = nameCopy;
+        }
+    }
+    
+    if (dialogueText) {
+        size_t len = strlen(dialogueText) + 1;
+        char* textCopy = (char*)malloc(len);
+        if (textCopy) {
+            strcpy(textCopy, dialogueText);
+            data->dialogueText = textCopy;
+        }
+    }
+    
+    data->portraitColor = portraitColor;
+    data->useTexture = false;
+    data->nameTagColor = DARKGRAY;
+    data->dialogueBoxColor = LIGHTGRAY;
+    data->textColor = BLACK;
+    data->nameColor = WHITE;
+    data->fontSize = 20;
+    data->nameFontSize = 20;
+    data->wrapText = true;
+    data->portraitSize = 100;
+    data->showOnRight = false;
+    
+    return component;
+}
+
+// Create a portrait dialogue component with a texture-based portrait
+RayDialComponent* CreatePortraitDialogueWithTexture(Rectangle bounds, const char* speakerName, const char* dialogueText, Texture2D portraitTexture) {
+    RayDialComponent* component = CreatePortraitDialogue(bounds, speakerName, dialogueText, WHITE);
+    RayDialPortraitDialogueData* data = (RayDialPortraitDialogueData*)component->data;
+    
+    data->portraitTexture = portraitTexture;
+    data->useTexture = true;
+    
+    return component;
+}
+
 // Component management functions
 void AddComponent(RayDialComponent* parent, RayDialComponent* child) {
     if (!parent || !child) return;
@@ -141,6 +478,10 @@ void UpdateComponent(RayDialComponent* component) {
         }
         case RAYDIAL_TEXTBOX: {
             // Handle text input
+            break;
+        }
+        case RAYDIAL_PORTRAIT_DIALOGUE: {
+            // No additional update logic needed for portrait dialogue
             break;
         }
         default:
@@ -348,6 +689,299 @@ void DrawComponent(RayDialComponent* component) {
             DrawRectangleLinesEx(component->bounds, data->borderWidth, data->borderColor);
             break;
         }
+        case RAYDIAL_PORTRAIT_DIALOGUE: {
+            RayDialPortraitDialogueData* data = (RayDialPortraitDialogueData*)component->data;
+            
+            // Calculate sizes and positions
+            int portraitSize = data->portraitSize;
+            int padding = 10;
+            int nameHeight = data->speakerName ? 40 : 0;
+            
+            // Determine portrait position based on showOnRight setting
+            float portraitX = data->showOnRight ? 
+                (component->bounds.x + component->bounds.width - portraitSize - padding) : 
+                (component->bounds.x + padding);
+            float portraitY = component->bounds.y + padding;
+            
+            // Set dialogue box bounds
+            Rectangle dialogueBox = component->bounds;
+            
+            // Draw dialogue box background
+            DrawRectangleRec(dialogueBox, data->dialogueBoxColor);
+            DrawRectangleLinesEx(dialogueBox, 2, DARKGRAY);
+            
+            // Draw portrait (either color or texture)
+            Rectangle portraitRect = { portraitX, portraitY, portraitSize, portraitSize };
+            if (data->useTexture) {
+                DrawTexturePro(
+                    data->portraitTexture,
+                    (Rectangle){ 0, 0, data->portraitTexture.width, data->portraitTexture.height },
+                    portraitRect,
+                    (Vector2){ 0, 0 },
+                    0.0f,
+                    WHITE
+                );
+            } else {
+                DrawRectangleRec(portraitRect, data->portraitColor);
+                DrawRectangleLinesEx(portraitRect, 2, DARKGRAY);
+            }
+            
+            // Draw name tag if a speaker name is provided
+            if (data->speakerName) {
+                Rectangle nameTagRect;
+                if (data->showOnRight) {
+                    nameTagRect = (Rectangle){ 
+                        portraitX - 120, portraitY, 
+                        120, nameHeight 
+                    };
+                } else {
+                    nameTagRect = (Rectangle){ 
+                        portraitX + portraitSize, portraitY, 
+                        120, nameHeight 
+                    };
+                }
+                
+                DrawRectangleRec(nameTagRect, data->nameTagColor);
+                DrawRectangleLinesEx(nameTagRect, 2, DARKGRAY);
+                
+                // Draw speaker name
+                int nameWidth = MeasureText(data->speakerName, data->nameFontSize);
+                float nameX = nameTagRect.x + (nameTagRect.width - nameWidth) / 2;
+                float nameY = nameTagRect.y + (nameTagRect.height - data->nameFontSize) / 2;
+                DrawText(data->speakerName, nameX, nameY, data->nameFontSize, data->nameColor);
+            }
+            
+            // Draw dialogue text
+            if (data->dialogueText || data->styledText) {
+                // Define dialogue text area
+                float textAreaX = data->showOnRight ? component->bounds.x + padding : portraitX + portraitSize + padding;
+                float textAreaWidth = data->showOnRight ? 
+                    (portraitX - component->bounds.x - padding * 2) : 
+                    (component->bounds.x + component->bounds.width - textAreaX - padding);
+                float textAreaY = portraitY + nameHeight + padding;
+                float textAreaHeight = component->bounds.height - nameHeight - padding * 3;
+                
+                Rectangle textArea = { textAreaX, textAreaY, textAreaWidth, textAreaHeight };
+                
+                // Clipping region for text
+                BeginScissorMode(textArea.x, textArea.y, textArea.width, textArea.height);
+                
+                if (data->useStyledText && data->styledText) {
+                    // Draw styled text segments
+                    float currentX = textArea.x;
+                    float currentY = textArea.y;
+                    float lineHeight = (float)data->fontSize * 1.5f;
+                    float maxWidth = textArea.width;
+                    
+                    RayDialTextSegment* segment = data->styledText;
+                    while (segment) {
+                        // Get text properties from styles
+                        Color textColor = data->textColor;
+                        float fontSize = (float)data->fontSize;
+                        bool isBold = false;
+                        bool isItalic = false;
+                        
+                        // Apply styles
+                        RayDialTextStyle* style = segment->styles;
+                        while (style) {
+                            switch (style->type) {
+                                case RAYDIAL_TEXT_COLORED:
+                                    textColor = style->value.color;
+                                    break;
+                                case RAYDIAL_TEXT_SIZED:
+                                    fontSize = style->value.fontSize;
+                                    break;
+                                case RAYDIAL_TEXT_BOLD:
+                                    isBold = true;
+                                    break;
+                                case RAYDIAL_TEXT_ITALIC:
+                                    isItalic = true;
+                                    break;
+                                default:
+                                    break;
+                            }
+                            style = style->next;
+                        }
+                        
+                        // Simple text wrapping
+                        const char* text = segment->text;
+                        if (text) {
+                            // Handle newlines in text
+                            char* textCopy = strdup(text);
+                            if (!textCopy) {
+                                EndScissorMode();
+                                break;
+                            }
+                            
+                            char* line = strtok(textCopy, "\n");
+                            while (line) {
+                                // Measure text to see if it fits on the current line
+                                int textWidth = MeasureText(line, (int)fontSize);
+                                
+                                if (currentX + textWidth > textArea.x + maxWidth) {
+                                    // Move to next line
+                                    currentX = textArea.x;
+                                    currentY += lineHeight;
+                                }
+                                
+                                // Draw text with current style
+                                DrawText(line, (int)currentX, (int)currentY, (int)fontSize, textColor);
+                                
+                                // Move to next line
+                                currentY += lineHeight;
+                                currentX = textArea.x;
+                                
+                                // Get next line
+                                line = strtok(NULL, "\n");
+                            }
+                            
+                            free(textCopy);
+                        }
+                        
+                        segment = segment->next;
+                    }
+                } else if (data->wrapText) {
+                    // Word-wrapped text using DrawTextEx with manual wrapping
+                    const char* text = data->dialogueText;
+                    float fontSize = (float)data->fontSize;
+                    float spacing = fontSize * 0.1f;
+                    float textPosY = textArea.y;
+                    float textWidth = textArea.width;
+                    
+                    // Create a working copy of the text for tokenization
+                    char* textCopy = malloc(strlen(text) + 1);
+                    if (!textCopy) {
+                        EndScissorMode();
+                        break;
+                    }
+                    strcpy(textCopy, text);
+                    
+                    // Use a simple approach to handle newlines in text
+                    char* saveptr = textCopy;
+                    char* line = NULL;
+                    char* nextLine = strchr(saveptr, '\n');
+                    
+                    while (saveptr && *saveptr) {
+                        // Extract the current line
+                        if (nextLine) {
+                            *nextLine = '\0';
+                            line = saveptr;
+                            saveptr = nextLine + 1;
+                            nextLine = strchr(saveptr, '\n');
+                        } else {
+                            line = saveptr;
+                            saveptr = NULL;
+                        }
+                        
+                        // Calculate width of the line
+                        Vector2 textSize = MeasureTextEx(GetFontDefault(), line, fontSize, spacing);
+                        
+                        if (textSize.x <= textWidth) {
+                            // Line fits, just draw it
+                            DrawTextEx(
+                                GetFontDefault(),
+                                line,
+                                (Vector2){ textArea.x, textPosY },
+                                fontSize,
+                                spacing,
+                                data->textColor
+                            );
+                            textPosY += textSize.y * 1.5f;
+                        } else {
+                            // Line doesn't fit, need to wrap
+                            int start = 0;
+                            int end = 0;
+                            int lastSpace = 0;
+                            
+                            while (line[end]) {
+                                if (line[end] == ' ') {
+                                    lastSpace = end;
+                                }
+                                
+                                // Check if current subset fits
+                                char temp[1024] = {0};
+                                strncpy(temp, line + start, end - start + 1);
+                                temp[end - start + 1] = '\0';
+                                
+                                textSize = MeasureTextEx(GetFontDefault(), temp, fontSize, spacing);
+                                
+                                if (textSize.x > textWidth) {
+                                    // This subset is too long, cut at last space
+                                    if (lastSpace > start) {
+                                        // Draw up to last space
+                                        strncpy(temp, line + start, lastSpace - start);
+                                        temp[lastSpace - start] = '\0';
+                                        
+                                        DrawTextEx(
+                                            GetFontDefault(),
+                                            temp,
+                                            (Vector2){ textArea.x, textPosY },
+                                            fontSize,
+                                            spacing,
+                                            data->textColor
+                                        );
+                                        
+                                        textPosY += textSize.y * 1.5f;
+                                        start = lastSpace + 1;
+                                        end = start;
+                                    } else {
+                                        // No space found, force break
+                                        strncpy(temp, line + start, end - start);
+                                        temp[end - start] = '\0';
+                                        
+                                        DrawTextEx(
+                                            GetFontDefault(),
+                                            temp,
+                                            (Vector2){ textArea.x, textPosY },
+                                            fontSize,
+                                            spacing,
+                                            data->textColor
+                                        );
+                                        
+                                        textPosY += textSize.y * 1.5f;
+                                        start = end;
+                                    }
+                                } else {
+                                    end++;
+                                }
+                                
+                                // If we reached end of string
+                                if (!line[end] && start < end) {
+                                    strncpy(temp, line + start, end - start);
+                                    temp[end - start] = '\0';
+                                    
+                                    DrawTextEx(
+                                        GetFontDefault(),
+                                        temp,
+                                        (Vector2){ textArea.x, textPosY },
+                                        fontSize,
+                                        spacing,
+                                        data->textColor
+                                    );
+                                    
+                                    textPosY += textSize.y * 1.5f;
+                                }
+                            }
+                        }
+                    }
+                    
+                    free(textCopy);
+                } else {
+                    // Regular text
+                    DrawText(
+                        data->dialogueText,
+                        textArea.x,
+                        textArea.y,
+                        data->fontSize,
+                        data->textColor
+                    );
+                }
+                
+                EndScissorMode();
+            }
+            
+            break;
+        }
         default:
             break;
     }
@@ -363,16 +997,47 @@ void DrawComponent(RayDialComponent* component) {
 void FreeComponent(RayDialComponent* component) {
     if (!component) return;
     
-    // Free child components
-    RayDialComponent* child = component->next;
-    while (child) {
-        RayDialComponent* next = child->next;
-        FreeComponent(child);
-        child = next;
+    // Free child components first
+    RayDialComponent* next = component->next;
+    while (next) {
+        RayDialComponent* toFree = next;
+        next = next->next;
+        FreeComponent(toFree);
     }
     
-    // Free component data
-    free(component->data);
+    // Free component-specific data
+    if (component->data) {
+        switch (component->type) {
+            case RAYDIAL_BUTTON:
+                free(component->data);
+                break;
+            case RAYDIAL_LABEL:
+                free(component->data);
+                break;
+            case RAYDIAL_TEXTBOX: {
+                RayDialTextboxData* data = (RayDialTextboxData*)component->data;
+                if (data->text) free(data->text);
+                free(data);
+                break;
+            }
+            case RAYDIAL_PANEL:
+                free(component->data);
+                break;
+            case RAYDIAL_PORTRAIT_DIALOGUE: {
+                RayDialPortraitDialogueData* data = (RayDialPortraitDialogueData*)component->data;
+                if (data->speakerName) free((void*)data->speakerName);
+                if (data->dialogueText) free((void*)data->dialogueText);
+                if (data->styledText) FreeStyledText(data->styledText);
+                free(data);
+                break;
+            }
+            default:
+                free(component->data);
+                break;
+        }
+    }
+    
+    // Free the component itself
     free(component);
 }
 
@@ -543,4 +1208,118 @@ void SetComponentVisible(RayDialComponent* component, bool visible) {
     if (component) {
         component->visible = visible;
     }
+}
+
+// Implementation of portrait dialogue utility functions
+void SetPortraitDialogueText(RayDialComponent* component, const char* dialogueText) {
+    if (!component || component->type != RAYDIAL_PORTRAIT_DIALOGUE || !dialogueText) return;
+    
+    RayDialPortraitDialogueData* data = (RayDialPortraitDialogueData*)component->data;
+    
+    // Free existing text
+    if (data->dialogueText) {
+        free((void*)data->dialogueText);
+        data->dialogueText = NULL;
+    }
+    
+    // Allocate and copy new text
+    size_t len = strlen(dialogueText) + 1;
+    char* textCopy = (char*)malloc(len);
+    if (textCopy) {
+        strcpy(textCopy, dialogueText);
+        data->dialogueText = textCopy;
+    }
+}
+
+void SetPortraitDialogueSpeaker(RayDialComponent* component, const char* speakerName) {
+    if (!component || component->type != RAYDIAL_PORTRAIT_DIALOGUE) return;
+    
+    RayDialPortraitDialogueData* data = (RayDialPortraitDialogueData*)component->data;
+    
+    // Free existing speaker name
+    if (data->speakerName) {
+        free((void*)data->speakerName);
+        data->speakerName = NULL;
+    }
+    
+    // Allocate and copy new speaker name if provided
+    if (speakerName) {
+        size_t len = strlen(speakerName) + 1;
+        char* nameCopy = (char*)malloc(len);
+        if (nameCopy) {
+            strcpy(nameCopy, speakerName);
+            data->speakerName = nameCopy;
+        }
+    }
+}
+
+void SetPortraitDialogueColor(RayDialComponent* component, Color portraitColor) {
+    if (!component || component->type != RAYDIAL_PORTRAIT_DIALOGUE) return;
+    
+    RayDialPortraitDialogueData* data = (RayDialPortraitDialogueData*)component->data;
+    data->portraitColor = portraitColor;
+    data->useTexture = false;
+}
+
+void SetPortraitDialogueTexture(RayDialComponent* component, Texture2D portraitTexture) {
+    if (!component || component->type != RAYDIAL_PORTRAIT_DIALOGUE) return;
+    
+    RayDialPortraitDialogueData* data = (RayDialPortraitDialogueData*)component->data;
+    data->portraitTexture = portraitTexture;
+    data->useTexture = true;
+}
+
+void SetPortraitDialoguePosition(RayDialComponent* component, bool showOnRight) {
+    if (!component || component->type != RAYDIAL_PORTRAIT_DIALOGUE) return;
+    
+    RayDialPortraitDialogueData* data = (RayDialPortraitDialogueData*)component->data;
+    data->showOnRight = showOnRight;
+}
+
+// Set styled text for portrait dialogue
+void SetPortraitDialogueStyledText(RayDialComponent* component, const char* formattedText) {
+    if (!component || component->type != RAYDIAL_PORTRAIT_DIALOGUE || !formattedText) return;
+    
+    RayDialPortraitDialogueData* data = (RayDialPortraitDialogueData*)component->data;
+    
+    // Free existing styled text
+    if (data->styledText) {
+        FreeStyledText(data->styledText);
+        data->styledText = NULL;
+    }
+    
+    // Free existing plain text
+    if (data->dialogueText) {
+        free((void*)data->dialogueText);
+        data->dialogueText = NULL;
+    }
+    
+    // Parse and set styled text
+    data->styledText = ParseStyledText(formattedText, data->textColor, (float)data->fontSize);
+    
+    // Create a plain text version for fallback
+    char* plainText = (char*)malloc(strlen(formattedText) + 1);
+    if (plainText) {
+        // Simple conversion: just strip out tags
+        const char* src = formattedText;
+        char* dst = plainText;
+        
+        bool inTag = false;
+        while (*src) {
+            if (*src == '[') {
+                inTag = true;
+            } else if (*src == ']') {
+                inTag = false;
+            } else if (!inTag) {
+                *dst++ = *src;
+            }
+            src++;
+        }
+        *dst = '\0';
+        
+        data->dialogueText = plainText;
+    }
+    
+    // Enable styled text rendering
+    data->useStyledText = true;
 }

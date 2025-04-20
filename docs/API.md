@@ -10,12 +10,13 @@ RayDial uses a component-based architecture with the following component types:
 
 ```c
 typedef enum {
-    RAYDIAL_BUTTON,    // Interactive buttons
-    RAYDIAL_LABEL,     // Text labels with wrapping and scrolling
-    RAYDIAL_TEXTBOX,   // Input fields (future)
-    RAYDIAL_IMAGE,     // Image display (future)
-    RAYDIAL_PANEL,     // Container for other components
-    RAYDIAL_SCROLLAREA // Scrollable area (future)
+    RAYDIAL_BUTTON,           // Interactive buttons
+    RAYDIAL_LABEL,            // Text labels with wrapping and scrolling
+    RAYDIAL_TEXTBOX,          // Input fields (future)
+    RAYDIAL_IMAGE,            // Image display (future)
+    RAYDIAL_PANEL,            // Container for other components
+    RAYDIAL_SCROLLAREA,       // Scrollable area (future)
+    RAYDIAL_PORTRAIT_DIALOGUE // Character dialogue with portrait
 } RayDialComponentType;
 ```
 
@@ -65,6 +66,26 @@ RayDialComponent* CreateLabel(
 RayDialComponent* CreatePanel(
     Rectangle bounds,           // Position and size
     Color backgroundColor       // Background color
+);
+```
+
+### Portrait Dialogue
+
+```c
+RayDialComponent* CreatePortraitDialogue(
+    Rectangle bounds,           // Position and size
+    const char* speakerName,    // Name of the character speaking
+    const char* dialogueText,   // Plain text for dialogue
+    Color portraitColor         // Color for portrait background
+);
+```
+
+```c
+RayDialComponent* CreatePortraitDialogueWithTexture(
+    Rectangle bounds,           // Position and size
+    const char* speakerName,    // Name of the character speaking
+    const char* dialogueText,   // Plain text for dialogue
+    Texture2D portraitTexture   // Texture for character portrait
 );
 ```
 
@@ -194,6 +215,166 @@ void FreeDialogueManager(
 );
 ```
 
+## Portrait Dialogue Utilities
+
+Functions for manipulating portrait dialogue components:
+
+```c
+// Set dialogue text (plain text)
+void SetPortraitDialogueText(
+    RayDialComponent* component, 
+    const char* dialogueText
+);
+
+// Set speaker name
+void SetPortraitDialogueSpeaker(
+    RayDialComponent* component, 
+    const char* speakerName
+);
+
+// Set portrait color (disables texture)
+void SetPortraitDialogueColor(
+    RayDialComponent* component, 
+    Color portraitColor
+);
+
+// Set portrait texture
+void SetPortraitDialogueTexture(
+    RayDialComponent* component, 
+    Texture2D portraitTexture
+);
+
+// Set portrait position (left or right)
+void SetPortraitDialoguePosition(
+    RayDialComponent* component, 
+    bool showOnRight
+);
+```
+
+## Styled Text System
+
+RayDial includes a rich text system that allows formatting text with styles like colors, sizes, bold, and italic.
+
+### Styled Text Data Structures
+
+```c
+// Text style types
+typedef enum {
+    RAYDIAL_TEXT_REGULAR,
+    RAYDIAL_TEXT_COLORED,
+    RAYDIAL_TEXT_SIZED,
+    RAYDIAL_TEXT_BOLD,
+    RAYDIAL_TEXT_ITALIC
+} RayDialTextStyleType;
+
+// Text style element
+typedef struct RayDialTextStyle {
+    RayDialTextStyleType type;
+    union {
+        Color color;              // For RAYDIAL_TEXT_COLORED
+        float fontSize;           // For RAYDIAL_TEXT_SIZED
+    } value;
+    struct RayDialTextStyle* next;  // Linked list of styles
+} RayDialTextStyle;
+
+// Styled text segment
+typedef struct RayDialTextSegment {
+    char* text;                      // Text content
+    RayDialTextStyle* styles;        // Linked list of styles
+    struct RayDialTextSegment* next; // Next segment in the text
+} RayDialTextSegment;
+```
+
+### Styled Text Functions
+
+```c
+// Set styled text for a portrait dialogue
+void SetPortraitDialogueStyledText(
+    RayDialComponent* component,  // Portrait dialogue component
+    const char* formattedText     // Text with formatting tags
+);
+
+// Parse formatted text into styled text segments
+RayDialTextSegment* ParseStyledText(
+    const char* formattedText,    // Text with formatting tags
+    Color defaultColor,           // Default text color
+    float defaultFontSize         // Default font size
+);
+
+// Free styled text segments
+void FreeStyledText(
+    RayDialTextSegment* styledText
+);
+
+// Get color from name (used by the parser)
+Color GetColorFromName(
+    const char* colorName         // Color name (e.g., "red", "blue")
+);
+```
+
+### Supported Tags
+
+The styled text system supports the following tags:
+
+| Tag | Description | Example |
+|-----|-------------|---------|
+| `[color=NAME]` | Changes text color | `[color=red]Red text[/color]` |
+| `[size=VALUE]` | Changes font size | `[size=24]Large text[/size]` |
+| `[b]` | Bold text | `[b]Bold text[/b]` |
+| `[i]` | Italic text | `[i]Italic text[/i]` |
+
+### Named Colors
+
+The following color names are supported:
+
+- `red`
+- `green`
+- `blue`
+- `yellow`
+- `purple`
+- `orange`
+- `white`
+- `black`
+- `gray`/`grey`
+- `darkgray`
+- `lightgray`
+
+### Size Values
+
+For size tags, you can use:
+
+- Numeric values: `[size=24]`
+- Named values: `[size=small]`, `[size=large]`, `[size=huge]`
+
+### Nested Tags
+
+Tags can be nested to combine styles:
+
+```
+[color=red][b]Bold red text[/b][/color]
+[size=large][color=blue]Large blue text[/color][/size]
+```
+
+## Example Usage: Styled Text
+
+```c
+// Create a portrait dialogue with styled text
+RayDialComponent* dialogue = CreatePortraitDialogue(
+    (Rectangle){50, 50, 700, 200},
+    "Character",
+    NULL,  // No plain text, using styled text instead
+    BLUE
+);
+
+// Set styled text with various formats
+SetPortraitDialogueStyledText(
+    dialogue,
+    "This is [color=red]red text[/color] and this is [b]bold text[/b].\n"
+    "This is [size=large]larger text[/size] and this is [i]italic text[/i].\n"
+    "You can also [color=green][b]combine[/b][/color] [size=24][i]styles[/i][/size]!"
+);
+```
+
 ## Utility Functions
 
 ### Component State
@@ -205,7 +386,7 @@ void SetComponentEnabled(RayDialComponent* component, bool enabled);
 void SetComponentVisible(RayDialComponent* component, bool visible);
 ```
 
-## Example Usage
+## Example Usage: Dialogue System
 
 Here's a complete example of a simple dialogue with choices:
 
