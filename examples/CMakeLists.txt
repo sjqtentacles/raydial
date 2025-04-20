@@ -11,11 +11,18 @@ target_link_libraries(2_dialogue_tree_example PRIVATE raydial)
 add_executable(3_animated_text_example 3_animated_text_example.c)
 target_link_libraries(3_animated_text_example PRIVATE raydial)
 
+add_executable(4_image_gallery_example 4_image_gallery_example.c)
+target_link_libraries(4_image_gallery_example PRIVATE raydial)
+
+add_executable(generate_portraits generate_portraits.c)
+target_link_libraries(generate_portraits PRIVATE raylib)
+
 # Install examples
 install(TARGETS 
     0_basic_example
     1_counter_example
     2_dialogue_tree_example
     3_animated_text_example
+    4_image_gallery_example
     DESTINATION ${CMAKE_INSTALL_BINDIR}
 ) 
