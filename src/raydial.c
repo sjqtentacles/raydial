@@ -545,7 +545,7 @@ void DrawComponent(RayDialComponent* component) {
                 float maxWidth = component->bounds.width - (data->scrollable ? data->scrollbarWidth + 5 : 0);
                 
                 // Reset content height for calculation
-                data->contentHeight = 0;
+                data->contentHeight = lineHeight; // Start with height of one line
                 
                 char* token = strtok(textCopy, " \n");
                 char line[1024] = {0};
@@ -566,7 +566,7 @@ void DrawComponent(RayDialComponent* component) {
                         
                         // Draw current line
                         if (y + lineHeight > component->bounds.y && y < component->bounds.y + component->bounds.height) {
-                            DrawText(line, x, y, fontSize, data->textColor);
+                            DrawTextEx(GetFontDefault(), line, (Vector2){x, y}, fontSize, 1.0f, data->textColor);
                         }
                         
                         // Move to next line
@@ -595,7 +595,7 @@ void DrawComponent(RayDialComponent* component) {
                     if (textWidth > maxWidth && strlen(line) > 0) {
                         // Draw current line and move to next line
                         if (y + lineHeight > component->bounds.y && y < component->bounds.y + component->bounds.height) {
-                            DrawText(line, x, y, fontSize, data->textColor);
+                            DrawTextEx(GetFontDefault(), line, (Vector2){x, y}, fontSize, 1.0f, data->textColor);
                         }
                         
                         y += lineHeight;
@@ -616,10 +616,11 @@ void DrawComponent(RayDialComponent* component) {
                     // If this was the last token, draw the final line
                     if (!token && strlen(line) > 0) {
                         if (y + lineHeight > component->bounds.y && y < component->bounds.y + component->bounds.height) {
-                            DrawText(line, x, y, fontSize, data->textColor);
+                            DrawTextEx(GetFontDefault(), line, (Vector2){x, y}, fontSize, 1.0f, data->textColor);
                         }
-                        y += lineHeight;
-                        data->contentHeight += lineHeight;
+                        // Only increment height if we actually added lines beyond the first
+                        // The last line's height is implicitly covered by the initial lineHeight assignment
+                        // and the increments within the loop.
                     }
                 }
                 
@@ -670,8 +671,9 @@ void DrawComponent(RayDialComponent* component) {
                 free(textCopy);
             } else {
                 // Draw non-wrapped text
-                DrawText(data->text, component->bounds.x, component->bounds.y - data->scrollPosition, 
-                        data->fontSize, data->textColor);
+                DrawTextEx(GetFontDefault(), data->text, 
+                          (Vector2){component->bounds.x, component->bounds.y - data->scrollPosition}, 
+                           data->fontSize, 1.0f, data->textColor);
                 
                 // Calculate content height
                 data->contentHeight = lineHeight;

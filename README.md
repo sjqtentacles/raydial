@@ -29,10 +29,13 @@ Here are some screenshots of the examples in action:
 ![Animated Text](docs/images/animated.gif)
 
 ### Portrait Dialogue
-![Portrait Dialogue](docs/images/portrait.png)
+![Portrait Dialogue](docs/images/portrait.gif)
 
 ### Styled Text
-![Styled Text](docs/images/styled.png)
+![Styled Text](docs/images/styled.gif)
+
+### Internationalization
+![Internationalization](docs/images/internationalization.gif)
 
 ## Examples
 
