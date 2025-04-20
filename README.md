@@ -16,29 +16,16 @@ A component-based dialogue system and UI toolkit for [Raylib](https://www.raylib
 
 Here are some screenshots of the examples in action:
 
-### Basic Example
-![Basic Example](docs/images/basic.png)
-
-### Counter Example
-![Counter Example](docs/images/counter.gif)
-
-### Dialogue Tree
-![Dialogue Tree](docs/images/tree.gif)
-
-### Animated Text
-![Animated Text](docs/images/animated.gif)
-
-### Portrait Dialogue
-![Portrait Dialogue](docs/images/portrait.gif)
-
-### Styled Text
-![Styled Text](docs/images/styled.gif)
-
-### Internationalization
-![Internationalization](docs/images/internationalization.gif)
-
-### Press Space/Enter To Continue
-![Press Space/Enter To Continue](docs/images/enter.gif)
+| Example | Screenshot | Description |
+|---------|------------|-------------|
+| Basic Example | ![Basic Example](docs/images/basic.png) | Simple UI component usage |
+| Counter Example | ![Counter Example](docs/images/counter.gif) | Interactive button-based counter |
+| Dialogue Tree | ![Dialogue Tree](docs/images/tree.gif) | Branching dialogue demonstration |
+| Animated Text | ![Animated Text](docs/images/animated.gif) | Text that types out with configurable speed |
+| Portrait Dialogue | ![Portrait Dialogue](docs/images/portrait.gif) | Character dialogue with portrait images |
+| Styled Text | ![Styled Text](docs/images/styled.gif) | Rich text formatting with colors, sizes, and styles |
+| Internationalization | ![Internationalization](docs/images/internationalization.gif) | Example of localization support |
+| Press Space/Enter To Continue | ![Press Space/Enter To Continue](docs/images/enter.gif) | Dialogue progression with keyboard input |
 
 ## Examples
 
