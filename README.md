@@ -22,6 +22,7 @@ Here are some screenshots of the examples in action:
 | Counter Example | ![Counter Example](docs/images/counter.gif) | Interactive button-based counter |
 | Dialogue Tree | ![Dialogue Tree](docs/images/tree.gif) | Branching dialogue demonstration |
 | Animated Text | ![Animated Text](docs/images/animated.gif) | Text that types out with configurable speed |
+| Image Gallery | ![Image Gallery](docs/images/gallery.gif) | A gallery of images |
 | Portrait Dialogue | ![Portrait Dialogue](docs/images/portrait.gif) | Character dialogue with portrait images |
 | Styled Text | ![Styled Text](docs/images/styled.gif) | Rich text formatting with colors, sizes, and styles |
 | Internationalization | ![Internationalization](docs/images/internationalization.gif) | Example of localization support |
@@ -35,6 +36,7 @@ The project includes several examples:
 - **Counter Example**: Interactive button-based counter
 - **Dialogue Tree**: Branching dialogue demonstration
 - **Animated Text**: Text that types out with configurable speed
+- **Image Gallery**: A paginated image gallery
 - **Portrait Dialogue**: Character dialogue with portrait images
 - **Styled Dialogue**: Rich text formatting with colors, sizes, and styles
 - **Localization Example**: Example of localization support
